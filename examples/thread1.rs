@@ -19,13 +19,17 @@ fn main() -> Result<()> {
         let tx = tx.clone();
         thread::spawn(move || producer(tx, i));
     }
+    drop(tx); //因为都是clone的，所以这里需要drop掉这个tx，否则rc的for循环不会结束
 
     //创建consumer线程
     let consumer = thread::spawn(move || {
         for msg in rc {
             println!("msg: {:?}", msg);
         }
+        println!("consumer exit");
     });
+
+    //join会使主线程等待consumer结束
     consumer
         .join()
         .map_err(|e| anyhow!("consumer thread panicked: {:?}", e))?;
@@ -37,6 +41,10 @@ fn producer(tx: mpsc::Sender<Msg>, i: usize) -> Result<()> {
         let value = rand::random::<usize>();
         tx.send(Msg::new(i, value))?;
         thread::sleep(Duration::from_millis(1000));
+        if rand::random::<u8>() % 10 == 0 {
+            println!("producer {} exit", i);
+            return Ok(());
+        }
     }
 }
 
