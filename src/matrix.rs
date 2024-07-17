@@ -153,6 +153,17 @@ impl<T> Msg<T> {
     }
 }
 
+impl<T> Mul for Matrix<T>
+where
+    T: Debug + Add<Output = T> + AddAssign + Mul<Output = T> + Copy + Default + Send + 'static,
+{
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        multiply(&self, &rhs).expect("multiply failed")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,7 +172,7 @@ mod tests {
     fn test_matrix() -> Result<()> {
         let a = Matrix::new(vec![1, 2, 3, 4, 5, 6], 2, 3);
         let b = Matrix::new(vec![7, 8, 9, 10, 11, 12], 3, 2);
-        let c = multiply(&a, &b).unwrap();
+        let c = a * b;
         assert_eq!(format!("{:?}", c), "Matrix(2x2):{58 64},{139 154}");
         Ok(())
     }
