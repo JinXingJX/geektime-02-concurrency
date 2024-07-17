@@ -6,10 +6,10 @@ use std::thread;
 fn main() -> Result<()> {
     let metrics = Metrics::new();
     for i in 0..5 {
-        task_worker(i, metrics.clone()); // Metrics {data: Arc::clone(&self.data)}
+        task_worker(i, metrics.clone())?; // Metrics {data: Arc::clone(&self.data)}
     }
     for _ in 0..2 {
-        request_worker(metrics.clone());
+        request_worker(metrics.clone())?;
     }
     loop {
         thread::sleep(std::time::Duration::from_secs(5));
@@ -17,17 +17,23 @@ fn main() -> Result<()> {
     }
 }
 
-fn task_worker(idx: usize, metrics: Metrics) {
-    thread::spawn(move || loop {
-        let mut rng = rand::thread_rng();
-        thread::sleep(std::time::Duration::from_millis(rng.gen_range(100..1000)));
-        metrics.inc(format!("call.thread.worker.{}", idx)).unwrap();
+fn task_worker(idx: usize, metrics: Metrics) -> Result<()> {
+    thread::spawn(move || {
+        loop {
+            let mut rng = rand::thread_rng();
+            thread::sleep(std::time::Duration::from_millis(rng.gen_range(100..1000)));
+            metrics.inc(format!("call.thread.worker.{}", idx))?;
+        }
+        #[allow(unreachable_code)]
+        Ok::<_, anyhow::Error>(())
     });
+    Ok(())
 }
 
-fn request_worker(metrics: Metrics) {
+fn request_worker(metrics: Metrics) -> Result<()> {
     let mut rng = rand::thread_rng();
     thread::sleep(std::time::Duration::from_millis(rng.gen_range(50..800)));
     let page = rng.gen_range(1..10);
-    metrics.inc(format!("page.view.{}", page)).unwrap();
+    metrics.inc(format!("page.view.{}", page))?;
+    Ok(())
 }
