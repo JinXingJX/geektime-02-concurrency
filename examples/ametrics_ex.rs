@@ -1,15 +1,27 @@
 use anyhow::Result;
-use concurrency::CmapMetrics;
+use concurrency::AmapMetrics;
 use rand::Rng;
 use std::thread;
 
 fn main() -> Result<()> {
-    let metrics = CmapMetrics::new();
+    let task_name = [
+        "call.thread.worker.0",
+        "call.thread.worker.1",
+        "call.thread.worker.2",
+        "call.thread.worker.3",
+        "call.thread.worker.4",
+        "call.thread.worker.5",
+    ];
+    let page_name = ["page.view.1", "page.view.2", "page.view.0"];
+    let mut metric_names = Vec::new();
+    metric_names.extend_from_slice(&task_name);
+    metric_names.extend_from_slice(&page_name);
+    let metrics = AmapMetrics::new(metric_names.as_slice());
     for i in 0..5 {
         task_worker(i, metrics.clone())?; // Metrics {data: Arc::clone(&self.data)}
     }
-    for _ in 0..2 {
-        request_worker(metrics.clone())?;
+    for i in 0..2 {
+        request_worker(i, metrics.clone())?;
     }
     loop {
         thread::sleep(std::time::Duration::from_secs(5));
@@ -17,7 +29,7 @@ fn main() -> Result<()> {
     }
 }
 
-fn task_worker(idx: usize, metrics: CmapMetrics) -> Result<()> {
+fn task_worker(idx: usize, metrics: AmapMetrics) -> Result<()> {
     thread::spawn(move || {
         loop {
             let mut rng = rand::thread_rng();
@@ -30,10 +42,9 @@ fn task_worker(idx: usize, metrics: CmapMetrics) -> Result<()> {
     Ok(())
 }
 
-fn request_worker(metrics: CmapMetrics) -> Result<()> {
+fn request_worker(idx: usize, metrics: AmapMetrics) -> Result<()> {
     let mut rng = rand::thread_rng();
     thread::sleep(std::time::Duration::from_millis(rng.gen_range(50..800)));
-    let page = rng.gen_range(1..10);
-    metrics.inc(format!("page.view.{}", page))?;
+    metrics.inc(format!("page.view.{}", idx))?;
     Ok(())
 }
